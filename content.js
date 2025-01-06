@@ -13,6 +13,23 @@ const codingDescContainerClass = "py-4 px-3 coding_desc_container__gdB9M";
 
 const GEMINI_API_KEY = 'AIzaSyBxMQyik-7Z_e7TpupMUpi1y5W0Xy9xMGI';
 
+// Function to extract problem ID from URL
+function getCurrentProblemId() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const pathMatch = window.location.pathname.match(/\/problems\/[^\/]+-(\d+)/);
+  return pathMatch ? pathMatch[1] : null;
+}
+
+// Function to get code editor data from localStorage
+function getCodeEditorData() {
+  const problemId = getCurrentProblemId();
+  if (!problemId) return null;
+  
+  const key = `course_8991_${problemId}_C++14`;
+  const editorData = localStorage.getItem(key);
+  return editorData;
+}
+
 function getSavedMessages() {
   try {
       const key = 'ai_chat_' + window.location.pathname.replace(/[^a-zA-Z0-9]/g, '_');
@@ -227,7 +244,7 @@ function createChatWindow() {
           loadingDiv.style.fontStyle = "italic";
           messagesArea.appendChild(loadingDiv);
   
-          try {
+       /*   try {
               // Make API call
               const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
                   method: 'POST',
@@ -242,7 +259,35 @@ function createChatWindow() {
                       }]
                   })
               });
-  
+  */         
+            
+        try {
+          // Get code editor data
+          const codeEditorData = getCodeEditorData();
+          
+          // Prepare context-enhanced prompt
+          const enhancedPrompt = `
+User Question: ${userMessage}
+
+Current Code in Editor:
+${codeEditorData || 'No code found in editor'}
+`;
+
+          // Make API call with enhanced context
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                  contents: [{
+                      parts: [{
+                          text: enhancedPrompt
+                      }]
+                  }]
+              })
+          });
+
               const data = await response.json();
               const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response received';
   
