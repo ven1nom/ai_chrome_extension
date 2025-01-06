@@ -13,6 +13,28 @@ const codingDescContainerClass = "py-4 px-3 coding_desc_container__gdB9M";
 
 const GEMINI_API_KEY = 'AIzaSyBxMQyik-7Z_e7TpupMUpi1y5W0Xy9xMGI';
 
+function getSavedMessages() {
+  try {
+      const key = 'ai_chat_' + window.location.pathname.replace(/[^a-zA-Z0-9]/g, '_');
+      return JSON.parse(localStorage.getItem(key) || '[]');
+  } catch {
+      return [];
+  }
+}
+
+function saveMessage(userMessage, aiResponse) {
+  try {
+      const key = 'ai_chat_' + window.location.pathname.replace(/[^a-zA-Z0-9]/g, '_');
+      const messages = getSavedMessages();
+      messages.push(
+          { type: 'user', text: userMessage },
+          { type: 'ai', text: aiResponse }
+      );
+      localStorage.setItem(key, JSON.stringify(messages));
+  } catch (error) {
+      console.error('Error saving messages:', error);
+  }
+}
 
 // Track last visited page
 let lastPageVisited = "";
@@ -124,6 +146,18 @@ function createChatWindow() {
   messagesArea.style.marginBottom = "10px";
   chatContainer.appendChild(messagesArea);
 
+      // Load saved messages
+      const savedMessages = getSavedMessages();
+      savedMessages.forEach(msg => {
+          const messageDiv = document.createElement("div");
+          messageDiv.style.marginBottom = "10px";
+          messageDiv.style.padding = "8px";
+          messageDiv.style.backgroundColor = msg.type === 'user' ? "#f0f0f0" : "#e3f2fd";
+          messageDiv.style.borderRadius = "4px";
+          messageDiv.textContent = msg.text;
+          messagesArea.appendChild(messageDiv);
+      });
+  
   // Create input container
   const inputContainer = document.createElement("div");
   inputContainer.style.display = "flex";
@@ -224,6 +258,9 @@ function createChatWindow() {
               aiMessageDiv.textContent = aiResponse;
               messagesArea.appendChild(aiMessageDiv);
   
+              //save message
+              saveMessage(userMessage, aiResponse);
+              
           } catch (error) {
               // Remove loading message
               loadingDiv.remove();
