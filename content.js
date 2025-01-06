@@ -30,6 +30,99 @@ function getCodeEditorData() {
   return editorData;
 }
 
+//Function to extract problem description from DOM
+function getProblemContext() {
+  try {
+      // Find the main container
+      const container = document.getElementsByClassName(codingDescContainerClass)[0];
+      if (!container) return null;
+
+      // Get the w-100 container that holds the problem content
+      const contentContainer = container.querySelector('.w-100:nth-child(2)');
+      if (!contentContainer) return null;
+
+      let problemContext = {
+          description: '',
+          inputFormat: '',
+          outputFormat: '',
+          constraints: '',
+          sampleInput: '',
+          sampleOutput: '',
+          notes: ''
+      };
+
+      // Function to extract text content from a section
+      const extractSectionContent = (sectionElement) => {
+          if (!sectionElement) return '';
+          // Get all text nodes, excluding button elements
+          const textContent = Array.from(sectionElement.querySelectorAll('*'))
+              .filter(el => !el.matches('button'))
+              .map(el => el.textContent.trim())
+              .filter(text => text)
+              .join('\n');
+          return textContent;
+      };
+
+      // Helper function to find section by heading text
+      const findSectionByHeading = (headingText) => {
+          const allDivs = contentContainer.querySelectorAll('div[class*="problem_paragraph"]');
+          for (const div of allDivs) {
+              const heading = div.querySelector('h5');
+              if (heading && heading.textContent.includes(headingText)) {
+                  return div;
+              }
+          }
+          return null;
+      };
+
+      // Extract Description
+      const descriptionSection = findSectionByHeading('Description');
+      if (descriptionSection) {
+          problemContext.description = extractSectionContent(descriptionSection);
+      }
+
+      // Extract Input Format
+      const inputFormatSection = findSectionByHeading('Input Format');
+      if (inputFormatSection) {
+          problemContext.inputFormat = extractSectionContent(inputFormatSection);
+      }
+
+      // Extract Output Format
+      const outputFormatSection = findSectionByHeading('Output Format');
+      if (outputFormatSection) {
+          problemContext.outputFormat = extractSectionContent(outputFormatSection);
+      }
+
+      // Extract Constraints
+      const constraintsSection = findSectionByHeading('Constraints');
+      if (constraintsSection) {
+          problemContext.constraints = extractSectionContent(constraintsSection);
+      }
+
+      // Extract Sample Input/Output
+      const sampleInputElements = Array.from(contentContainer.querySelectorAll('div[class*="_C13VJ"]'))
+          .filter(el => el.textContent.includes('Sample Input'));
+      
+      if (sampleInputElements.length > 0) {
+          const inputContainer = sampleInputElements[0].nextElementSibling?.querySelector('[class*="coding_input_format"]');
+          if (inputContainer) {
+              problemContext.sampleInput = inputContainer.textContent.trim();
+          }
+      }
+
+      // Extract Notes/Explanations
+      const notesSection = findSectionByHeading('Note');
+      if (notesSection) {
+          problemContext.notes = extractSectionContent(notesSection);
+      }
+
+      return problemContext;
+  } catch (error) {
+      console.error('Error extracting problem context:', error);
+      return null;
+  }
+}
+
 function getSavedMessages() {
   try {
       const key = 'ai_chat_' + window.location.pathname.replace(/[^a-zA-Z0-9]/g, '_');
@@ -64,7 +157,7 @@ window.addEventListener("load", function() {
   
   observer.observe(document.body, { childList: true, subtree: true });
   handleContentChange();
-});
+})
 
 function handleContentChange() {
   if(isPageChange()) handlePageChange();
@@ -262,16 +355,41 @@ function createChatWindow() {
   */         
             
         try {
-          // Get code editor data
+          // Get code editor data & DOM Data
           const codeEditorData = getCodeEditorData();
-          
+          const problemContext = getProblemContext();
+
           // Prepare context-enhanced prompt
           const enhancedPrompt = `
-User Question: ${userMessage}
-
-Current Code in Editor:
-${codeEditorData || 'No code found in editor'}
-`;
+          Problem Context:
+          ${problemContext.description}
+          
+          Input Format:
+          ${problemContext.inputFormat}
+          
+          Output Format:
+          ${problemContext.outputFormat}
+          
+          Constraints:
+          ${problemContext.constraints}
+          
+          Sample Input:
+          ${problemContext.sampleInput}
+          
+          Sample Output:
+          ${problemContext.sampleOutput}
+          
+          Notes/Explanations:
+          ${problemContext.notes}
+          
+          Current Code in Editor:
+          ${codeEditorData || 'No code found in editor'}
+          
+          User Question:
+          ${userMessage}
+          
+          Please provide assistance based on this specific problem context.
+          `;
 
           // Make API call with enhanced context
           const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
