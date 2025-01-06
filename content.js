@@ -11,6 +11,9 @@ const AI_HELPER_BUTTON_ID = "ai-helper-button";
 const CHAT_CONTAINER_ID = "chat-container";
 const codingDescContainerClass = "py-4 px-3 coding_desc_container__gdB9M";
 
+const GEMINI_API_KEY = 'AIzaSyBxMQyik-7Z_e7TpupMUpi1y5W0Xy9xMGI';
+
+
 // Track last visited page
 let lastPageVisited = "";
 
@@ -154,7 +157,7 @@ function createChatWindow() {
     }
   });
 
-  function handleSendMessage() {
+ /* function handleSendMessage() {
     if (input.value.trim()) {
       const message = document.createElement("div");
       message.style.marginBottom = "10px";
@@ -166,7 +169,81 @@ function createChatWindow() {
       messagesArea.scrollTop = messagesArea.scrollHeight;
       input.value = "";
     }
+  }*/
+    async function handleSendMessage() {
+      if (input.value.trim()) {
+          // Show user message first
+          const messageDiv = document.createElement("div");
+          messageDiv.style.marginBottom = "10px";
+          messageDiv.style.padding = "8px";
+          messageDiv.style.backgroundColor = "#f0f0f0";
+          messageDiv.style.borderRadius = "4px";
+          messageDiv.textContent = input.value;
+          messagesArea.appendChild(messageDiv);
+  
+          // Store message and clear input
+          const userMessage = input.value;
+          input.value = "";
+  
+          // Show loading message
+          const loadingDiv = document.createElement("div");
+          loadingDiv.textContent = "Loading...";
+          loadingDiv.style.marginBottom = "10px";
+          loadingDiv.style.padding = "8px";
+          loadingDiv.style.fontStyle = "italic";
+          messagesArea.appendChild(loadingDiv);
+  
+          try {
+              // Make API call
+              const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                      contents: [{
+                          parts: [{
+                              text: userMessage
+                          }]
+                      }]
+                  })
+              });
+  
+              const data = await response.json();
+              const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response received';
+  
+              // Remove loading message
+              loadingDiv.remove();
+  
+              // Show AI response
+              const aiMessageDiv = document.createElement("div");
+              aiMessageDiv.style.marginBottom = "10px";
+              aiMessageDiv.style.padding = "8px";
+              aiMessageDiv.style.backgroundColor = "#e3f2fd";
+              aiMessageDiv.style.borderRadius = "4px";
+              aiMessageDiv.textContent = aiResponse;
+              messagesArea.appendChild(aiMessageDiv);
+  
+          } catch (error) {
+              // Remove loading message
+              loadingDiv.remove();
+  
+              // Show error message
+              const errorDiv = document.createElement("div");
+              errorDiv.style.marginBottom = "10px";
+              errorDiv.style.padding = "8px";
+              errorDiv.style.backgroundColor = "#ffebee";
+              errorDiv.style.color = "#c62828";
+              errorDiv.style.borderRadius = "4px";
+              errorDiv.textContent = "Sorry, there was an error processing your request.";
+              messagesArea.appendChild(errorDiv);
+          }
+  
+          // Scroll to bottom
+          messagesArea.scrollTop = messagesArea.scrollHeight;
+      }
   }
+  
 
   // Assemble the chat window
   inputContainer.appendChild(input);
