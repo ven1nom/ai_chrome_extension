@@ -29,7 +29,8 @@
       "resources": [
         "assets/bookmark.png",
         "assets/delete.png",
-        "assets/play.png"
+        "assets/play.png",
+        "inject.js"
       ],
       "matches" : ["<all_urls>"]
     }
